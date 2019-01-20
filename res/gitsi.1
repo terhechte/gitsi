@@ -1,0 +1,156 @@
+.TH GITSI 1 "Version 1: 1 Jan 2019"
+.SH NAME
+git status interactive
+.SH SYNOPSIS
+.B "gitsi \-h"
+.br
+.B "gitsi"
+.br
+.B "gitsi [git repository]"
+.SH DESCRIPTION
+.I Gitsi
+is a simple wrapper around 
+.I git status
+and
+.I git add
+.
+It provides an easy terminal UI (TUI) that is optimized for staging, unstaging, and deleting files and changes between the git
+index, workspace and untracked files.
+.PP
+There are many useful features such as quick jumping to sections, filtering, running
+.I git add -p
+diffing, and quick navigation.
+.PP
+.I Gitsi
+displays all your changes and untracked files in a list with the 
+.I index, workspace, and untracked
+sections. Just like 
+.I git status
+However, you can navigate this this interactively much like 
+.I vi / vim.
+Which makes it much easier to quickly jump to the one file you'd like to 
+.I add
+or the one file you'd like to move back from the 
+.I index
+to the workspace.
+
+.SH COMMANDS
+In the following descriptions, ^X means control-X, ESC stands for the ESCAPE key.
+
+.B NAVIGATION
+
+The j/k/C-d/C-u commands can be repeated by entering numbers before the actual command, like vim. i.e.
+.I 12j
+would jump down 12 lines.
+
+.IP "j"
+move one line down
+
+.IP "k"
+move one like up
+
+.IP "C-d"
+Jump 10 lines down
+
+.IP "C-u"
+Jump 10 lines up
+
+.IP "!"
+Jump straight to the 
+.I index
+section of the git status output. [Shift + 1]
+
+.IP "@"
+Jump straight to the 
+.I workspace
+section of the git status output. [Shift + 2]
+
+.IP "#"
+Jump straeight to the
+.I untracked files
+section of the git status output. [Shift + 3]
+
+.IP "G"
+Jump to the bottom of the list.
+
+.IP "g"
+Jump to the top of the list.
+
+.IP "q"
+Quit
+
+.SH ""
+.B SEARCHING
+
+.IP "/"
+Enter the search / filter mode. Hit return to apply the filter and ESC to cancel the filter.
+.br
+If a filter has been applied, hit "/" again to edit it again.
+
+.IP "ESC"
+Cancel the current search.
+
+.IP "Enter"
+Apply the current search.
+
+.SH ""
+.B ACTIONS
+
+.IP "s"
+Add file or stage (depending on context).
+
+.IP "u"
+Unstage file or delete file (depending on context).
+
+.IP "m"
+Mark selected file.
+
+.IP "M"
+Mark all files in section (i.e. index, workspace, untracked)
+
+.IP "S"
+Stage / Add all marked files.
+.br
+This will also unmark all marked files.
+
+.IP "U"
+Unstage / delete all marked files.
+.br
+This will also unmark all marked files.
+
+.IP "d"
+Switch to a 
+.I git diff
+of the selected file
+
+.IP "i"
+Run a interactive add
+.I (git add -p)
+
+.IP "c"
+Run
+.I (git commit)
+with the $EDITOR of choice
+
+.IP "C"
+Run
+.I (git commit --amend)
+with the $EDITOR of choice
+
+.IP "V"
+Toggle Visual Mark Mode. Mark files by moving.
+.br
+ESC cancels and resets.
+
+.IP "x"
+Reset all changes to this file. 
+.br
+The same as `git checkout -- name-of-file`
+
+.SH EXIT STATUS
+The 
+.b gitsi
+utility exits 0 on success and >0 if an error occurs.
+
+.SH COPYRIGHT
+Copyright (C) 2019 Benedikt Terhechte
