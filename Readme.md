@@ -82,6 +82,7 @@ For testing on Linux, if you're on a Mac, there's `res/Dockerfile` that adds cla
 
 ``` bash
 # assuming you build the docker image via `docker build . --tag=gitsi:dev`
+# also assuming you're in the parent dir that contains the checked out `gitsi` dir (i.e. cd ..)
 docker run -it --mount type=bind,source="$(pwd)"/gitsi,target=/code gitsi:dev bash
 ```
 
