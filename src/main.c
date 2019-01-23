@@ -1212,6 +1212,10 @@ void gitsi_process_input(gitsi_context *context) {
                 }
             }
             else if (key == K_S_V) {
+		// Only if visual mark mode was off, do we modify the current position
+		if (!context->is_visual_mark_mode && context->position != NULL) {
+                    context->position->marked = !context->position->marked;
+		}
                 context->is_visual_mark_mode = !context->is_visual_mark_mode;
             }
             else if (key == K_S_M) {
