@@ -13,6 +13,10 @@ gitsi ~/Development/Code
 gitsi
 ```
 
+<img src="https://j.gifs.com/JyDPZy.gif" />
+
+[Click here to see a short example video](https://www.youtube.com/watch?v=pAxquqis56I&feature=youtu.be)
+
 ### What is it
 Gitsi  is  a  simple  wrapper around git status and git add It provides an easy terminal UI that is optimized for staging, unstaging, and deleting files and changes between the git index, workspace and untracked files.
 
@@ -99,7 +103,7 @@ valgrind --leak-check=full \
 ```
 
 ## Open Issues
-
+- Currently, gitsi has to be run in the repo root, otherwise some operations calculate the wrong file path. This should account for the pwd.
 - [Maybe] Split up into multiple files
 - Add git stash support, especially for stashing individual files
 - Mark all
