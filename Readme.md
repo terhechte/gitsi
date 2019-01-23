@@ -71,10 +71,21 @@ The `j/k/C-d/C-u` commands can be repeated by entering numbers before the actual
 
 ### macOS
 
+``` bash
+brew install libgit2
+make release
+make install
+```
+
 ### Ubuntu
+
+``` bash
 apt-get install make
 apt-get install libgit2-dev
 apt-get install libncurses-dev
+make release
+make install
+```
 
 ## Development
 
