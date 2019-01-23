@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <git2.h>
 #ifdef __APPLE__
 #include <curses.h>
