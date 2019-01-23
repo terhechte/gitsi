@@ -960,7 +960,7 @@ void gitsi_print_list(gitsi_context *context) {
         if (i > (start_pos + length))break;
         int pos = ((int)i) - start_pos;
         bool is_selected = context->position == entries[i];
-        bool is_marked = context->entries[i]->marked;
+        bool is_marked = entries[i]->marked;
         
         if (context->has_color == true && !is_selected) {
             if (entries[i]->type == STATUS_TYPE_INDEX) {
