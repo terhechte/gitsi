@@ -503,7 +503,7 @@ void gitsi_get_repository_status(gitsi_context *context) {
     bool category = false;
     
     size_t number_of_categories = 3;
-    context->entries = calloc((maxi + number_of_categories), sizeof(gitsi_status_entry*));
+    context->entries = calloc((maxi + number_of_categories), sizeof(gitsi_status_entry));
     
     // Index
     for (i = 0; i < maxi; ++i) {
