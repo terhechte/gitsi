@@ -445,15 +445,15 @@ void gitsi_open_repository(gitsi_context *context) {
 /* Go through all the entries in the context and free them */
 void gitsi_free_entries(gitsi_context *context) {
     for (size_t i = 0; i < context->entry_count; ++i) {
-	// Not all categories are always there, but we always alloc the space for 3 categories
-	// So the last [1-3] entries might never have been allocated
-	if (context->entries[i] == NULL)continue;
+        // Not all categories are always there, but we always alloc the space for 3 categories
+        // So the last [1-3] entries might never have been allocated
+        if (context->entries[i] == NULL)continue;
         free((char*)context->entries[i]->filename);
         free((char*)context->entries[i]->description);
         free(context->entries[i]);
-	// Here, we explicitly don't set context->entries[i] to NULL as that would also set
-	// context->entries[0] to NULL, and then the next `if` context->entries != NULL would
-	// result in false, as context->entries == context->entries[0].
+        // Here, we explicitly don't set context->entries[i] to NULL as that would also set
+        // context->entries[0] to NULL, and then the next `if` context->entries != NULL would
+        // result in false, as context->entries == context->entries[0].
     }
     if (context->entries != NULL) {
         free(context->entries);
@@ -618,7 +618,7 @@ void gitsi_get_repository_status(gitsi_context *context) {
             entry_count += 1;
         }
     }
-
+    
     context->entry_count = entry_count;
     git_status_list_free(status);
 }
@@ -1089,9 +1089,9 @@ void gitsi_process_search(gitsi_context *context, enum key_stroke key, int ch) {
  */
 volatile sig_atomic_t sigint_received = false;
 void sigint_handler(int sig_num) { 
-    /* Reset handler to catch SIGINT next time. 
-       Refer http://en.cppreference.com/w/c/program/signal */
-    signal(SIGINT, sigint_handler); 
+    /* Reset handler to catch SIGINT next time.
+     Refer http://en.cppreference.com/w/c/program/signal */
+    signal(SIGINT, sigint_handler);
     sigint_received = true;
 } 
 
@@ -1115,15 +1115,15 @@ void gitsi_process_input(gitsi_context *context) {
         }
         
         while (true) {
-		timeout(100);
-		ch = getch();
-		// The user pressed CTRL-C, we want to clean up
-		if (sigint_received == true) {
-			return;
-		}
-		if (ch != ERR)break;
-	}
-
+            timeout(100);
+            ch = getch();
+            // The user pressed CTRL-C, we want to clean up
+            if (sigint_received == true) {
+                return;
+            }
+            if (ch != ERR)break;
+        }
+        
         key = translate_key(context, ch);
         
         if (context->is_search) {
@@ -1285,9 +1285,9 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
-
+    
     signal(SIGINT, sigint_handler);
-
+    
     gitsi_context context = {
         .repo = NULL,
         .has_color = false,
