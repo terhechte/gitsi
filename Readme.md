@@ -93,6 +93,26 @@ This is the first pure C project I finished since around 2004. I'm sure there're
 
 If you build it in debug mode, it will create `/tmp/gitsi.log` and you can use the `gitsi_debug_str` function to write to this log.
 
+## Terminal
+
+`make` will create a debug build in the current folder (`./gitsi`).
+You can debug on the terminal via llvm `llvm gitsi [repo]`
+
+## Xcode
+
+There's an Xcode project included. It should work right away. 
+
+## Xcode debugging
+
+Since Xcode does not support running apps with TUI / curses, you have to attach to a process. The way it works is:
+
+1. Build in Xcode, and then run for debugging
+2. Xcode will say "waiting to attach"
+3. Go into a terminal and run the just-build Xcode product (i.e. somewhere in derived data)
+4. Xcode will connect. Now your breakpoints will be hit.
+
+## Linux
+
 For testing on Linux, if you're on a Mac, there's `res/Dockerfile` that adds clang, valgrind, etc. It can be run via:
 
 ``` bash
