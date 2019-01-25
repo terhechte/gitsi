@@ -24,10 +24,6 @@ There are many useful features such as quick jumping to sections, filtering, run
 
 Gitsi displays all your changes and untracked files in a list with the index, workspace, and untracked sections. Just like git status However, you can navigate this this interactively much like vi / vim.  Which makes it much easier to quickly jump to the one file you'd like to add or the one file you'd like to move back from the index to the workspace.
 
-### See it in action
-
-FIXME
-
 ### Shortcuts
 
 The following shortcuts are also explained within `gitsi` in a help section at the bottom.
@@ -92,6 +88,13 @@ make install
 This is the first pure C project I finished since around 2004. I'm sure there're tons of bugs. If you find an issue, feel free to point it out.
 
 If you build it in debug mode, it will create `/tmp/gitsi.log` and you can use the `gitsi_debug_str` function to write to this log.
+
+I deliberately c hose to have all the code in one file in order to simplify working in terminal editors like vim. However, as can be seen 
+in the todo list at the bottom, this might change in the future.
+
+There're currently no tests (and no testing framework) but that's on the agenda.
+
+If you're a die-hard C user and find things that are wrong, please keep in mind that this is a beginner project and please be kind. Thanks.
 
 ## Terminal
 
