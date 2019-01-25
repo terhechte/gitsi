@@ -145,6 +145,11 @@ enum key_stroke {
 /* Translate what the user entered into one of our key constants */
 enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (ch == 10) return K_ENTER;
+    // This returns a pointer, but I could not figure out via the docs
+    // whether the pointer needs to be freed. Valgrind laments that we're
+    // leaking here, but in one document, it says:
+    // http://pubs.opengroup.org/onlinepubs/7908799/xcurses/keyname.html
+    // "The return value of keyname() and key_name() may point to a static area which is overwritten by a subsequent call to either of these functions."
     const char *key = keyname(ch);
 #define CMP(arg) strcmp(key, arg) == 0
     if (CMP("/"))return K_SLASH;
@@ -258,6 +263,7 @@ bool gitsi_dialog(gitsi_context *context, const char *title) {
 
 /* clear one line on the screen */
 void gitsi_clear_line(gitsi_context *context, size_t row) {
+    // This will be reported as a leak as it is never free'ed
     static char *clean_line = NULL;
     // we imagine a max terminal size of 4096
     const size_t line_size = 4096;
@@ -438,10 +444,15 @@ void gitsi_open_repository(gitsi_context *context) {
 /* Go through all the entries in the context and free them */
 void gitsi_free_entries(gitsi_context *context) {
     for (size_t i = 0; i < context->entry_count; ++i) {
+	// Not all categories are always there, but we always alloc the space for 3 categories
+	// So the last [1-3] entries might never have been allocated
+	if (context->entries[i] == NULL)continue;
         free((char*)context->entries[i]->filename);
         free((char*)context->entries[i]->description);
         free(context->entries[i]);
-        context->entries[i] = NULL;
+	// Here, we explicitly don't set context->entries[i] to NULL as that would also set
+	// context->entries[0] to NULL, and then the next `if` context->entries != NULL would
+	// result in false, as context->entries == context->entries[0].
     }
     if (context->entries != NULL) {
         free(context->entries);
@@ -462,7 +473,9 @@ void gitsi_cleanup(gitsi_context *context) {
     git_index_free(context->repo_index);
     context->repo_index = NULL;
     context->repo = NULL;
+    free(context->repo_dir);
     gitsi_free_entries(context);
+    git_libgit2_shutdown();
 }
 
 /* Add an entry to our list of entries, called when git status is performed */
@@ -503,7 +516,11 @@ void gitsi_get_repository_status(gitsi_context *context) {
     bool category = false;
     
     size_t number_of_categories = 3;
-    context->entries = calloc((maxi + number_of_categories), sizeof(gitsi_status_entry));
+    // We account for off-by-one for the number of categories (+ 1)
+    // And for the number of entries (+ 1)
+    // So we reserver the number of categories + the number of entries + 2 off-by-ones
+    size_t number_of_entries = 2 + maxi + number_of_categories;
+    context->entries = calloc(number_of_entries, sizeof(gitsi_status_entry*));
     
     // Index
     for (i = 0; i < maxi; ++i) {
@@ -600,7 +617,7 @@ void gitsi_get_repository_status(gitsi_context *context) {
             entry_count += 1;
         }
     }
-    
+
     context->entry_count = entry_count;
     git_status_list_free(status);
 }
@@ -614,7 +631,7 @@ void gitsi_filter_entries(gitsi_context *context) {
     }
     // We're lazy. Instead of having to use realloc, we just reserve as much space for filtered
     // items as for normal items
-    context->filtered_entries = calloc(context->entry_count, sizeof(gitsi_status_entry));
+    context->filtered_entries = calloc(context->entry_count, sizeof(gitsi_status_entry*));
     context->filtered_entry_count = 0;
     for (size_t i = 0; i < context->entry_count; ++i) {
         // Empty search terms match all
@@ -1087,7 +1104,7 @@ void gitsi_process_input(gitsi_context *context) {
         ch = getch();
         key = translate_key(context, ch);
         
-        gitsi_debug_str(context, "%i\n", ch);
+        //gitsi_debug_str(context, "%i\n", ch);
         
         if (context->is_search) {
             gitsi_process_search(context, key, ch);
@@ -1269,5 +1286,9 @@ int main(int argc, char *argv[]) {
     gitsi_select_first_entry(&context);
     gitsi_process_input(&context);
     gitsi_curses_stop(false);
+    gitsi_cleanup(&context);
+#if DEBUG
+    fclose(context.logfile);
+#endif
     return 0;
 }

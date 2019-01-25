@@ -113,6 +113,12 @@ valgrind --leak-check=full \
          ./gitsi REPO-DIR
 ```
 
+Note that there're some `gray_control` leaks in libssh. Those seem to be ignorable, based on
+https://github.com/libgit2/libgit2/pull/4804/files
+
+NCurses also works in a way that looks like leaks to valgrind:
+https://invisible-island.net/ncurses/ncurses.faq.html#config_leaks
+
 ## Open Issues
 - Currently, gitsi has to be run in the repo root, otherwise some operations calculate the wrong file path. This should account for the pwd.
 - [Maybe] Split up into multiple files
