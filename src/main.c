@@ -1319,3 +1319,38 @@ int main(int argc, char *argv[]) {
 #endif
     return 0;
 }
+
+// Currently unused. This can be used to debug the usage
+// without curses. In the future This will be used to
+// run tests
+int debug_main(int argc, char *argv[]) {
+    gitsi_context context = {
+        .repo = NULL,
+        .has_color = false,
+        .position = NULL,
+        .search_term = "",
+        .filtered_entries = NULL,
+        .is_search = false,
+        .is_in_help = false,
+        .is_visual_mark_mode = false,
+        .number_stack_count = 0,
+    };
+    context.repo_dir = strdup("test_repository");
+    git_libgit2_init();
+    gitsi_open_repository(&context);
+    gitsi_update_status(&context);
+    gitsi_select_first_entry(&context);
+    // Test going down
+    gitsi_process_input(&context, 'j');
+    gitsi_process_input(&context, 'j');
+    gitsi_process_input(&context, 'j');
+    strcpy(context.search_term, "main");
+    gitsi_filter_entries(&context);
+    
+    for (size_t i=0; i<context.filtered_entry_count; i++) {
+        printf("%s\n", context.filtered_entries[i]->filename);
+    }
+    
+    gitsi_cleanup(&context);
+    return 0;
+}
