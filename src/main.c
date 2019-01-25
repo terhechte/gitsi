@@ -83,6 +83,7 @@ typedef struct gitsi_status_entry {
 } gitsi_status_entry;
 
 #define MAX_SEARCH_CHARS 256
+#define MAX_NUMBER_STACK 8
 
 #if DEBUG
 #define LOGFILE_NAME "/tmp/gitsi.log"
@@ -122,7 +123,7 @@ typedef struct gitsi_context {
     // UI State
     bool is_visual_mark_mode;
     bool is_in_help;
-    char number_stack[8];
+    char number_stack[MAX_NUMBER_STACK];
     int number_stack_count;
     
     // Log State
@@ -1111,7 +1112,7 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
         }
         // detect 0-9
         if (key == K_OTHER && input_char >= 48 && input_char <= 57) {
-            if (context->number_stack_count >= 7)return;
+            if (context->number_stack_count >= (MAX_NUMBER_STACK - 1))return;
             context->number_stack[context->number_stack_count++] = (char)input_char;
         } else if (key == K_SLASH) {
             context->is_search = true;
@@ -1247,6 +1248,10 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
     // Clear number stack on any other action
     if (context->number_stack_count > 0 && key != K_OTHER) {
         context->number_stack_count = 0;
+        // Reset the memory
+        for (int i = 0; i < MAX_NUMBER_STACK; i++) {
+            context->number_stack[i] = 0;
+        }
     }
 }
 
