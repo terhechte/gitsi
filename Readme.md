@@ -148,6 +148,7 @@ https://invisible-island.net/ncurses/ncurses.faq.html#config_leaks
 - Add git stash support, especially for stashing individual files
 - The loop over the status items should not happen three times, but instead happen once and call out to functions for index, workspace, and untracked
 - git commit -a
+- Deleted files can only be unstaged to toggle between index and workspace. That seems to be because the status is not taken into account
 - [Maybe] add to homebrew
 - [Maybe] a config file (line numbers on off, color on off, etc)
 - Better error handling (calloc fail, git fail, etc)
