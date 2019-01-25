@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ftw.h>
+#include <signal.h>
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -1083,6 +1084,18 @@ void gitsi_process_search(gitsi_context *context, enum key_stroke key, int ch) {
     gitsi_filter_entries(context);
 }
 
+/* Signal Handler for SIGINT 
+ * If the user hits CTRL+C to exit, we still want to clean up properly
+ */
+volatile sig_atomic_t sigint_received = false;
+void sigint_handler(int sig_num) { 
+    /* Reset handler to catch SIGINT next time. 
+       Refer http://en.cppreference.com/w/c/program/signal */
+    signal(SIGINT, sigint_handler); 
+    sigint_received = true;
+} 
+
+
 /* Main function to process the user input and act
  * accordingly */
 void gitsi_process_input(gitsi_context *context) {
@@ -1101,10 +1114,17 @@ void gitsi_process_input(gitsi_context *context) {
             mvaddstr(0, context->max_x - number_stack_count, number_stack);
         }
         
-        ch = getch();
+        while (true) {
+		timeout(100);
+		ch = getch();
+		// The user pressed CTRL-C, we want to clean up
+		if (sigint_received == true) {
+			return;
+		}
+		if (ch != ERR)break;
+	}
+
         key = translate_key(context, ch);
-        
-        //gitsi_debug_str(context, "%i\n", ch);
         
         if (context->is_search) {
             gitsi_process_search(context, key, ch);
@@ -1265,6 +1285,9 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+
+    signal(SIGINT, sigint_handler);
+
     gitsi_context context = {
         .repo = NULL,
         .has_color = false,
