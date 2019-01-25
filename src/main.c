@@ -122,6 +122,8 @@ typedef struct gitsi_context {
     // UI State
     bool is_visual_mark_mode;
     bool is_in_help;
+    char number_stack[8];
+    int number_stack_count;
     
     // Log State
 #if DEBUG
@@ -1095,23 +1097,172 @@ void sigint_handler(int sig_num) {
     sigint_received = true;
 } 
 
+void gitsi_process_input(gitsi_context *context, int input_char) {
+    enum key_stroke key = translate_key(context, input_char);
+    
+    if (context->is_search) {
+        gitsi_process_search(context, key, input_char);
+    } else if (context->is_in_help) {
+        context->is_in_help = false;
+    } else {
+        int iteration_count = 1;
+        if (context->number_stack_count > 0) {
+            iteration_count = atoi(context->number_stack);
+        }
+        // detect 0-9
+        if (key == K_OTHER && input_char >= 48 && input_char <= 57) {
+            if (context->number_stack_count >= 7)return;
+            context->number_stack[context->number_stack_count++] = (char)input_char;
+        } else if (key == K_SLASH) {
+            context->is_search = true;
+        } else if (key == K_ESC) {
+            if (strlen(context->search_term) > 0) {
+                strcpy(context->search_term, "");
+                gitsi_filter_entries(context);
+            }
+            else if (context->is_visual_mark_mode == true) {
+                context->is_visual_mark_mode = false;
+                for (size_t i = 0; i < context->entry_count; i++) {
+                    context->entries[i]->marked = false;
+                }
+            }
+        } else if (key == K_Q) {
+            sigint_received = true;
+            return;
+        } else if (key == K_H) {
+            context->is_in_help = true;
+        }
+        else if (key == K_J) {
+            for (int i = 0; i < iteration_count; i++) {
+                gitsi_select_entry(context, 1);
+            }
+        }
+        else if (key == K_K) {
+            for (int i = 0; i < iteration_count; i++) {
+                gitsi_select_entry(context, -1);
+            }
+        }
+        else if (key == K_C_D) {
+            for (int i = 0; i < iteration_count; i++) {
+                gitsi_select_entry(context, 10);
+            }
+        }
+        else if (key == K_C_U) {
+            for (int i = 0; i < iteration_count; i++) {
+                gitsi_select_entry(context, -10);
+            }
+        }
+        else if (key == K_S_G) {
+            gitsi_select_last_entry(context);
+        }
+        else if (key == K_G) {
+            gitsi_select_first_entry(context);
+        }
+        else if (key == K_S) {
+            size_t pos = gitsi_position_index(context);
+            gitsi_stage_entry(context, context->position);
+            gitsi_update_status(context);
+            gitsi_select_entry_by_index(context, pos);
+        }
+        else if (key == K_U) {
+            size_t pos = gitsi_position_index(context);
+            gitsi_unstage_entry(context, context->position);
+            gitsi_update_status(context);
+            gitsi_select_entry_by_index(context, pos);
+        }
+        else if (key == K_S_S) {
+            gitsi_action_on_marked(context, &gitsi_stage_entry);
+            gitsi_update_status(context);
+        }
+        else if (key == K_S_U) {
+            gitsi_action_on_marked(context, &gitsi_unstage_entry);
+            gitsi_update_status(context);
+        }
+        else if (key == K_I) {
+            if (context->position != NULL) {
+                gitsi_perform_gitp(context, context->position);
+                gitsi_update_status(context);
+            }
+        }
+        else if (key == K_C) {
+            gitsi_perform_commit(context, false);
+            gitsi_update_status(context);
+        }
+        else if (key == K_S_C) {
+            gitsi_perform_commit(context, true);
+            gitsi_update_status(context);
+        }
+        else if (key == K_X) {
+            if (context->position == NULL)return;
+            if (context->position->type == STATUS_TYPE_UNTRACKED)return;
+            bool shouldCheckout = gitsi_dialog(context, "Do you really want to reset all changes to this file?");
+            if (shouldCheckout == true) {
+                size_t pos = gitsi_position_index(context);
+                gitsi_checkout_entry(context, context->position);
+                context->position = NULL;
+                gitsi_update_status(context);
+                gitsi_select_entry_by_index(context, pos);
+            }
+        }
+        else if (key == K_D) {
+            if (context->position != NULL) {
+                gitsi_perform_diff(context, context->position);
+            }
+        }
+        else if (key == K_S_1) {
+            gitsi_select_category(context, STATUS_TYPE_INDEX);
+        }
+        else if (key == K_S_2) {
+            gitsi_select_category(context, STATUS_TYPE_WORKSPACE);
+        }
+        else if (key == K_S_3) {
+            gitsi_select_category(context, STATUS_TYPE_UNTRACKED);
+        }
+        else if (key == K_M) {
+            if (context->position != NULL) {
+                context->position->marked = !context->position->marked;
+            }
+        }
+        else if (key == K_S_V) {
+            // Only if visual mark mode was off, do we modify the current position
+            if (!context->is_visual_mark_mode && context->position != NULL) {
+                context->position->marked = !context->position->marked;
+            }
+            context->is_visual_mark_mode = !context->is_visual_mark_mode;
+        }
+        else if (key == K_S_M) {
+            // get the current section from position, and iterate over all in section
+            if (context->position != NULL && context->position->type != STATUS_TYPE_CATEGORY) {
+                enum GITSI_STATUS_TYPE type = context->position->type;
+                bool flag = !context->position->marked;
+                for (size_t i = 0; i < context->entry_count; i++) {
+                    if (context->entries[i]->type == type) {
+                        context->entries[i]->marked = flag;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Clear number stack on any other action
+    if (context->number_stack_count > 0 && key != K_OTHER) {
+        context->number_stack_count = 0;
+    }
+}
+
 
 /* Main function to process the user input and act
  * accordingly */
-void gitsi_process_input(gitsi_context *context) {
+void gitsi_main_loop(gitsi_context *context) {
     int ch = 0;
-    enum key_stroke key;
-    
-    char number_stack[8];
-    int number_stack_count = 0;
     
     while(true) {
         getmaxyx(stdscr, context->max_y, context->max_x);
         gitsi_print_main(context);
         
-        if (number_stack_count > 0) {
-            number_stack[number_stack_count + 1] = '\0';
-            mvaddstr(0, context->max_x - number_stack_count, number_stack);
+        if (context->number_stack_count > 0) {
+            context->number_stack[context->number_stack_count + 1] = '\0';
+            mvaddstr(0, context->max_x - context->number_stack_count, context->number_stack);
         }
         
         while (true) {
@@ -1124,155 +1275,7 @@ void gitsi_process_input(gitsi_context *context) {
             if (ch != ERR)break;
         }
         
-        key = translate_key(context, ch);
-        
-        if (context->is_search) {
-            gitsi_process_search(context, key, ch);
-        } else if (context->is_in_help) {
-            context->is_in_help = false;
-        } else {
-            int iteration_count = 1;
-            if (number_stack_count > 0) {
-                iteration_count = atoi(number_stack);
-            }
-            // detect 0-9
-            if (key == K_OTHER && ch >= 48 && ch <= 57) {
-                if (number_stack_count >= 7)continue;
-                number_stack[number_stack_count++] = (char)ch;
-            } else if (key == K_SLASH) {
-                context->is_search = true;
-            } else if (key == K_ESC) {
-                if (strlen(context->search_term) > 0) {
-                    strcpy(context->search_term, "");
-                    gitsi_filter_entries(context);
-                }
-                else if (context->is_visual_mark_mode == true) {
-                    context->is_visual_mark_mode = false;
-                    for (size_t i = 0; i < context->entry_count; i++) {
-                        context->entries[i]->marked = false;
-                    }
-                }
-            } else if (key == K_Q) {
-                return;
-            } else if (key == K_H) {
-                context->is_in_help = true;
-            }
-            else if (key == K_J) {
-                for (int i = 0; i < iteration_count; i++) {
-                    gitsi_select_entry(context, 1);
-                }
-            }
-            else if (key == K_K) {
-                for (int i = 0; i < iteration_count; i++) {
-                    gitsi_select_entry(context, -1);
-                }
-            }
-            else if (key == K_C_D) {
-                for (int i = 0; i < iteration_count; i++) {
-                    gitsi_select_entry(context, 10);
-                }
-            }
-            else if (key == K_C_U) {
-                for (int i = 0; i < iteration_count; i++) {
-                    gitsi_select_entry(context, -10);
-                }
-            }
-            else if (key == K_S_G) {
-                gitsi_select_last_entry(context);
-            }
-            else if (key == K_G) {
-                gitsi_select_first_entry(context);
-            }
-            else if (key == K_S) {
-                size_t pos = gitsi_position_index(context);
-                gitsi_stage_entry(context, context->position);
-                gitsi_update_status(context);
-                gitsi_select_entry_by_index(context, pos);
-            }
-            else if (key == K_U) {
-                size_t pos = gitsi_position_index(context);
-                gitsi_unstage_entry(context, context->position);
-                gitsi_update_status(context);
-                gitsi_select_entry_by_index(context, pos);
-            }
-            else if (key == K_S_S) {
-                gitsi_action_on_marked(context, &gitsi_stage_entry);
-                gitsi_update_status(context);
-            }
-            else if (key == K_S_U) {
-                gitsi_action_on_marked(context, &gitsi_unstage_entry);
-                gitsi_update_status(context);
-            }
-            else if (key == K_I) {
-                if (context->position != NULL) {
-                    gitsi_perform_gitp(context, context->position);
-                    gitsi_update_status(context);
-                }
-            }
-            else if (key == K_C) {
-                gitsi_perform_commit(context, false);
-                gitsi_update_status(context);
-            }
-            else if (key == K_S_C) {
-                gitsi_perform_commit(context, true);
-                gitsi_update_status(context);
-            }
-            else if (key == K_X) {
-                if (context->position == NULL)continue;
-                if (context->position->type == STATUS_TYPE_UNTRACKED)continue;
-                bool shouldCheckout = gitsi_dialog(context, "Do you really want to reset all changes to this file?");
-                if (shouldCheckout == true) {
-                    size_t pos = gitsi_position_index(context);
-                    gitsi_checkout_entry(context, context->position);
-                    context->position = NULL;
-                    gitsi_update_status(context);
-                    gitsi_select_entry_by_index(context, pos);
-                }
-            }
-            else if (key == K_D) {
-                if (context->position != NULL) {
-                    gitsi_perform_diff(context, context->position);
-                }
-            }
-            else if (key == K_S_1) {
-                gitsi_select_category(context, STATUS_TYPE_INDEX);
-            }
-            else if (key == K_S_2) {
-                gitsi_select_category(context, STATUS_TYPE_WORKSPACE);
-            }
-            else if (key == K_S_3) {
-                gitsi_select_category(context, STATUS_TYPE_UNTRACKED);
-            }
-            else if (key == K_M) {
-                if (context->position != NULL) {
-                    context->position->marked = !context->position->marked;
-                }
-            }
-            else if (key == K_S_V) {
-                // Only if visual mark mode was off, do we modify the current position
-                if (!context->is_visual_mark_mode && context->position != NULL) {
-                    context->position->marked = !context->position->marked;
-                }
-                context->is_visual_mark_mode = !context->is_visual_mark_mode;
-            }
-            else if (key == K_S_M) {
-                // get the current section from position, and iterate over all in section
-                if (context->position != NULL && context->position->type != STATUS_TYPE_CATEGORY) {
-                    enum GITSI_STATUS_TYPE type = context->position->type;
-                    bool flag = !context->position->marked;
-                    for (size_t i = 0; i < context->entry_count; i++) {
-                        if (context->entries[i]->type == type) {
-                            context->entries[i]->marked = flag;
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Clear number stack on any other action
-        if (number_stack_count > 0 && key != K_OTHER) {
-            number_stack_count = 0;
-        }
+        gitsi_process_input(context, ch);
     }
 }
 
@@ -1297,6 +1300,7 @@ int main(int argc, char *argv[]) {
         .is_search = false,
         .is_in_help = false,
         .is_visual_mark_mode = false,
+        .number_stack_count = 0,
     };
 #if DEBUG
     context.logfile = fopen(LOGFILE_NAME, "w");
@@ -1307,7 +1311,7 @@ int main(int argc, char *argv[]) {
     gitsi_curses_start(&context);
     gitsi_update_status(&context);
     gitsi_select_first_entry(&context);
-    gitsi_process_input(&context);
+    gitsi_main_loop(&context);
     gitsi_curses_stop(false);
     gitsi_cleanup(&context);
 #if DEBUG
