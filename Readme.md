@@ -123,8 +123,7 @@ https://invisible-island.net/ncurses/ncurses.faq.html#config_leaks
 - Currently, gitsi has to be run in the repo root, otherwise some operations calculate the wrong file path. This should account for the pwd.
 - [Maybe] Split up into multiple files
 - Add git stash support, especially for stashing individual files
-- Mark all
-- Clear all marks
+- The loop over the status items should not happen three times, but instead happen once and call out to functions for index, workspace, and untracked
 - git commit -a
 - [Maybe] add to homebrew
 - [Maybe] a config file (line numbers on off, color on off, etc)

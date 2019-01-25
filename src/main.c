@@ -277,7 +277,7 @@ void gitsi_clear_line(gitsi_context *context, size_t row) {
     size_t max_clean = MIN((int)line_size, context->max_x);
     memset(clean_line, ' ', sizeof(char) * max_clean);
     clean_line[context->max_x] = '\0';
-    mvprintw(row, 0, "%s", clean_line);
+    mvprintw((int)row, 0, "%s", clean_line);
 }
 
 /* Startup ncurses and set the proper flags */
@@ -356,7 +356,7 @@ void gitsi_select_entry(gitsi_context *context, int direction) {
     for (size_t i = 0; i < context->filtered_entry_count; ++i) {
         if (context->filtered_entries[i]->type == STATUS_TYPE_CATEGORY)continue;
         if (context->position == context->filtered_entries[i]) {
-            position = i;
+            position = (int)i;
             found = true;
             break;
         }
@@ -885,15 +885,15 @@ void gitsi_action_names(gitsi_context *context, const char** first, const char**
 /* print the search bar at the bottom */
 void gitsi_print_status_search(gitsi_context *context, size_t row) {
     const char title[] = "/";
-    mvprintw(row, 1, "%s%s", title, context->search_term);
+    mvprintw((int)row, 1, "%s%s", title, context->search_term);
     const char search_help[] = "[Enter: back to list] [Escape: Cancel]";
     const char search_help_short[] = "[ENTER|ESC]";
     const int length_help = strlen(search_help);
     const int length_help_short = strlen(search_help_short);
     if ((context->max_x - (strlen(context->search_term) + 4)) > length_help) {
-        mvprintw(row, context->max_x - (length_help + 1), search_help);
+        mvprintw((int)row, context->max_x - (length_help + 1), search_help);
     } else {
-        mvprintw(row, context->max_x - (length_help_short + 1), search_help_short);
+        mvprintw((int)row, context->max_x - (length_help_short + 1), search_help_short);
     }
 }
 
@@ -906,7 +906,7 @@ void gitsi_print_status_help(gitsi_context *context, size_t row) {
     gitsi_action_names(context, &action_add_name, &action_del_name);
     
     size_t help_position = context->max_x - (1 + strlen(help_help));
-    int remaining_space = help_position;
+    int remaining_space = (int)help_position;
     size_t current_x_position = 1;
     for (size_t i = 0; i < help_entries_length; i++) {
         char *title;
@@ -925,11 +925,11 @@ void gitsi_print_status_help(gitsi_context *context, size_t row) {
             free(title);
             break;
         }
-        mvprintw(row, current_x_position, title);
+        mvprintw((int)row, (int)current_x_position, title);
         current_x_position += strlen(title);
         free(title);
     }
-    mvprintw(row, 1 + help_position, help_help);
+    mvprintw((int)row, 1 + (int)help_position, help_help);
 }
 
 /* Print the status bar at the bottom. Either help or search */
@@ -957,8 +957,8 @@ void gitsi_print_list(gitsi_context *context) {
     // based on cursor_position and height of screen
     size_t list_height = context->max_y - status_bar_height;
     // Have to be signed so we can see if we're <0
-    int lowerlimit = cursor_pos - list_height / 2;
-    int upperlimit = count - (list_height / 2);
+    int lowerlimit = (int)(cursor_pos - list_height / 2);
+    int upperlimit = (int)(count - (list_height / 2));
     size_t start_pos = MAX(MIN(lowerlimit, upperlimit), 0);
     size_t length = list_height;
     
@@ -979,7 +979,7 @@ void gitsi_print_list(gitsi_context *context) {
     int linum_pos = 1;
     for (size_t i = start_pos; i < count; ++i) {
         if (i > (start_pos + length))break;
-        int pos = ((int)i) - start_pos;
+        int pos = ((int)i) - (int)start_pos;
         bool is_selected = context->position == entries[i];
         bool is_marked = entries[i]->marked;
         
@@ -1031,10 +1031,10 @@ void gitsi_print_full_help(gitsi_context *context) {
     color_set(0, 0);
     size_t i = 3;
     for (; i < help_entries_length; i++) {
-        mvprintw(i, 2, "[%s]\t%s", help_entries[i].key, help_entries[i].desc);
+        mvprintw((int)i, 2, "[%s]\t%s", help_entries[i].key, help_entries[i].desc);
     }
     i += 2;
-    mvprintw(i, 2, "Use 1-9 before j/k/C-d/C-u to repeat the action [like vi]");
+    mvprintw((int)i, 2, "Use 1-9 before j/k/C-d/C-u to repeat the action [like vi]");
 }
 
 // --------------------------------------------------
@@ -1076,7 +1076,7 @@ void gitsi_process_search(gitsi_context *context, enum key_stroke key, int ch) {
         strcpy(context->search_term, "");
     }
     else if (key == K_BACKSPACE) {
-        int new_pos = strlen(context->search_term) - 1;
+        int new_pos = ((int)strlen(context->search_term)) - 1;
         if (new_pos >= 0) {
             context->search_term[new_pos] = '\0';
         }
