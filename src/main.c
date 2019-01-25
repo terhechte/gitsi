@@ -664,6 +664,7 @@ void gitsi_update_status(gitsi_context *context) {
 
 /* Stage or add an entry depending on the type of the file / entry */
 void gitsi_stage_entry(gitsi_context *context, gitsi_status_entry *entry) {
+    if (entry->type == STATUS_TYPE_CATEGORY)return;
     int error;
     switch (util_is_regular_file(context->repo_dir, entry->filename)) {
         case FILE_TYPE_FILE:
@@ -731,6 +732,7 @@ void gitsi_unstage_untracked(gitsi_context *context, gitsi_status_entry *entry) 
 
 /* Unstage or delete an entry, depending on the type of a file */
 void gitsi_unstage_entry(gitsi_context *context, gitsi_status_entry *entry) {
+    if (entry->type == STATUS_TYPE_CATEGORY)return;
     switch (entry->type) {
         case STATUS_TYPE_WORKSPACE:
             gitsi_unstage_workspace(context, entry);
