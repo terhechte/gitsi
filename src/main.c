@@ -55,6 +55,7 @@ const gitsi_help_entry help_entries[] = {
     
     {.key = "d", .name = "diff", .desc = "Run `git diff` on the selected file"},
     {.key = "i", .name = "add -p", .desc = "Run git interactive add on the selected file"},
+    {.key = "e", .name = "edit", .desc = "Open the file in vim"},
     {.key = "c", .name = "commit", .desc = "Run `git commit`"},
     {.key = "C-d", .name = "jump down", .desc = "Jump half a screen down"},
     {.key = "C-u", .name = "jump up", .desc = "Jump half a screen up"},
@@ -135,7 +136,7 @@ typedef struct gitsi_context {
 /* All the possible keystrokes for navigation and actions are defiend here */
 enum key_stroke {
     // Actions
-    K_SLASH, K_Q, K_S, K_U, K_S_S, K_S_U, K_D, K_I, K_M, K_S_M, K_C,
+    K_SLASH, K_Q, K_S, K_U, K_S_S, K_S_U, K_D, K_I, K_M, K_S_M, K_C, K_E,
     K_BACKSPACE, K_ESC, K_ENTER, K_YES, K_NO, K_H, K_S_V, K_S_C, K_X,
     // Navigation
     K_G, K_C_U, K_C_D, K_J, K_K, K_S_G, K_S_1, K_S_2, K_S_3,
@@ -175,6 +176,7 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (CMP("h"))return K_H;
     
     if (CMP("d"))return K_D;
+    if (CMP("e"))return K_E;
     if (CMP("g"))return K_G;
     if (CMP("i"))return K_I;
     if (CMP("!"))return K_S_1;
@@ -859,6 +861,16 @@ void gitsi_perform_commit(gitsi_context *context, bool amend) {
     free(buffer);
 }
 
+void gitsi_perform_edit(gitsi_context *context, gitsi_status_entry *entry) {
+    char *buffer;
+    asprintf(&buffer, "/bin/sh -c \"cd '%s' && vim '%s'\"", context->repo_dir, entry->filename);
+    
+    gitsi_curses_stop(false);
+    system(buffer);
+    gitsi_curses_start(context);
+    free(buffer);
+}
+
 // --------------------------------------------------
 #pragma mark Printing / UI
 // --------------------------------------------------
@@ -1210,6 +1222,12 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
         else if (key == K_D) {
             if (context->position != NULL) {
                 gitsi_perform_diff(context, context->position);
+            }
+        }
+        else if (key == K_E) {
+            if (context->position != NULL) {
+                gitsi_perform_edit(context, context->position);
+		gitsi_update_status(context);
             }
         }
         else if (key == K_S_1) {

@@ -56,6 +56,7 @@ The following shortcuts are also explained within `gitsi` in a help section at t
 - `S`      Stage / Add all marked files.  This will also unmark all marked files.
 - `U`      Unstage / delete all marked files.  This will also unmark all marked files.
 - `d`      Switch to a git diff of the selected file
+- `e`      Open the selected file in vim for editing
 - `i`      Run a interactive add `git add -p1
 - `c`      Run `git commit`
 - `C`      Run `git commit --amend`
