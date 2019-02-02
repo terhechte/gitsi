@@ -1304,7 +1304,31 @@ void gitsi_main_loop(gitsi_context *context) {
     }
 }
 
+
 int main(int argc, char *argv[]) {
+    gitsi_context context = {
+        .repo = NULL,
+    };
+    git_libgit2_init();
+    gitsi_parse_parameters(&context, argc, argv);
+    gitsi_open_repository(&context);
+
+    git_reference *head;
+    int error = git_repository_head(&head, context.repo);
+    gitsi_check_error("get head", error);
+    git_ref_t head_ref_type = git_reference_type(head);
+    if (head_ref_type == GIT_REF_SYMBOLIC) {
+	    const char *name = git_reference_symbolic_target(head);
+	    printf("name: %s\n", name);
+    } else if (head_ref_type == GIT_REF_OID) {
+	    printf("|OOID\n");
+    } else {
+	    printf("noonne|OOID\n");
+    }
+
+}
+
+int xmain(int argc, char *argv[]) {
     for (int argi = 1; argi < argc; argi++) {
         if (strcmp(argv[argi], "--debug-terminal") == 0)
         {
