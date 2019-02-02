@@ -107,6 +107,7 @@ typedef struct gitsi_context {
     char *repo_dir;
     git_repository *repo;
     git_index *repo_index;
+    char *remote;
     
     // Entries state
     gitsi_status_entry **entries;
@@ -1304,6 +1305,40 @@ void gitsi_main_loop(gitsi_context *context) {
     }
 }
 
+bool gitsi_current_branch_name(gitsi_context *context, const char **reference_name) {
+    git_reference *head;
+    int error = git_repository_head(&head, context->repo);
+    gitsi_check_error("git head", error);
+    git_ref_t head_ref_type = git_reference_type(head);
+    if (head_ref_type == GIT_REF_SYMBOLIC) {
+	    git_reference_free(head);
+	    return false;
+    } else if (head_ref_type == GIT_REF_OID) {
+	    *reference_name = git_reference_name(head);
+	    git_reference_free(head);
+    }
+    return true;
+}
+
+void gitsi_push_to_remote(gitsi_context *context) {
+	const char *refname = NULL;
+	bool result = gitsi_current_branch_name(context, &refname);
+	if (!result)return;
+	git_remote *remote = NULL;
+	git_remote_lookup(&remote, context->repo, context->remote);
+	git_remote_connect(remote, GIT_DIRECTION_PUSH, NULL, NULL, NULL);
+	// from the current branch, to the current branch
+	char *buffer;
+	asprintf(&buffer, "%s:%s", refname, refname);
+	printf("buffer: %s\n", buffer);
+	git_remote_add_push(context->repo, context->remote, buffer);
+	git_push_options options;
+	git_push_init_options(&options, GIT_PUSH_OPTIONS_VERSION);
+	//git_remote_upload(remote, NULL, &options);
+	git_remote_free(remote);
+	free(buffer);
+}
+
 
 int main(int argc, char *argv[]) {
     gitsi_context context = {
@@ -1312,20 +1347,7 @@ int main(int argc, char *argv[]) {
     git_libgit2_init();
     gitsi_parse_parameters(&context, argc, argv);
     gitsi_open_repository(&context);
-
-    git_reference *head;
-    int error = git_repository_head(&head, context.repo);
-    gitsi_check_error("get head", error);
-    git_ref_t head_ref_type = git_reference_type(head);
-    if (head_ref_type == GIT_REF_SYMBOLIC) {
-	    const char *name = git_reference_symbolic_target(head);
-	    printf("name: %s\n", name);
-    } else if (head_ref_type == GIT_REF_OID) {
-	    printf("|OOID\n");
-    } else {
-	    printf("noonne|OOID\n");
-    }
-
+    gitsi_push_to_remote(&context);
 }
 
 int xmain(int argc, char *argv[]) {
@@ -1342,6 +1364,7 @@ int xmain(int argc, char *argv[]) {
     
     gitsi_context context = {
         .repo = NULL,
+        .remote = (char*)&"origin", // FIXME: Can be set via cmd param in the future?
         .has_color = false,
         .position = NULL,
         .search_term = "",
@@ -1375,6 +1398,7 @@ int xmain(int argc, char *argv[]) {
 int debug_main(int argc, char *argv[]) {
     gitsi_context context = {
         .repo = NULL,
+        .remote = (char*)&"origin", // FIXME: Can be set via cmd param in the future?
         .has_color = false,
         .position = NULL,
         .search_term = "",
