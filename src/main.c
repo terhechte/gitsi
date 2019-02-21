@@ -820,7 +820,7 @@ void gitsi_perform_diff(gitsi_context *context, gitsi_status_entry *entry) {
     }
     
     char *buffer;
-    asprintf(&buffer, "/bin/sh -c \"cd '%s' && git diff %s %s\"", context->repo_dir, param, entry->filename);
+    asprintf(&buffer, "/bin/sh -c \"cd '%s' && git diff %s '%s'\"", context->repo_dir, param, entry->filename);
     
     gitsi_curses_stop(false);
     char *oldenv_org = getenv("GIT_PAGER");
