@@ -54,6 +54,7 @@ const gitsi_help_entry help_entries[] = {
     {.key = "q", .name = "quit", .desc = "Quit the program"},
     
     {.key = "d", .name = "diff", .desc = "Run `git diff` on the selected file"},
+    {.key = "r", .name = "reload", .desc = "Reload the repository"},
     {.key = "i", .name = "add -p", .desc = "Run git interactive add on the selected file"},
     {.key = "e", .name = "edit", .desc = "Open the file in vim"},
     {.key = "c", .name = "commit", .desc = "Run `git commit`"},
@@ -68,6 +69,8 @@ const gitsi_help_entry help_entries[] = {
     {.key = "M", .name = "mark section", .desc = "Mark / Unmark all files in section"},
     {.key = "V", .name = "visual mark mode", .desc = "Toggle Visual Mark mode to mark files by moving. ESC cancels"},
     {.key = "C", .name = "amend", .desc = "Run `git commit --amend`"},
+    {.key = "p", .name = "push", .desc = "Run `git push`"},
+    {.key = "P", .name = "push -u", .desc = "Run `git push -u`"},
     {.key = "S", .name = "s action on marked", .desc = "Perform the add/stage action on all marked files"},
     {.key = "U", .name = "u action on marked", .desc = "Perform the unstage/delete action on all marked files"},
     {.key = "x", .name = "Reset", .desc = "Remove / Reset all changes this file has. Like `git checkout -- file`"},
@@ -136,8 +139,8 @@ typedef struct gitsi_context {
 /* All the possible keystrokes for navigation and actions are defiend here */
 enum key_stroke {
     // Actions
-    K_SLASH, K_Q, K_S, K_U, K_S_S, K_S_U, K_D, K_I, K_M, K_S_M, K_C, K_E,
-    K_BACKSPACE, K_ESC, K_ENTER, K_YES, K_NO, K_H, K_S_V, K_S_C, K_X,
+    K_SLASH, K_Q, K_S, K_U, K_S_S, K_S_U, K_D, K_I, K_M, K_S_M, K_C, K_E, K_R,
+    K_BACKSPACE, K_ESC, K_ENTER, K_YES, K_NO, K_H, K_S_V, K_S_C, K_X, K_P, K_S_P,
     // Navigation
     K_G, K_C_U, K_C_D, K_J, K_K, K_S_G, K_S_1, K_S_2, K_S_3,
     K_OTHER
@@ -161,6 +164,7 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (CMP("q"))return K_Q;
     if (CMP("j"))return K_J;
     if (CMP("k"))return K_K;
+    if (CMP("r"))return K_R;
     
     if (CMP("s"))return K_S;
     if (CMP("u"))return K_U;
@@ -174,6 +178,8 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (CMP("C"))return K_S_C;
     if (CMP("x"))return K_X;
     if (CMP("h"))return K_H;
+    if (CMP("p"))return K_P;
+    if (CMP("P"))return K_S_P;
     
     if (CMP("d"))return K_D;
     if (CMP("e"))return K_E;
@@ -861,6 +867,28 @@ void gitsi_perform_commit(gitsi_context *context, bool amend) {
     free(buffer);
 }
 
+/* perform a git push */
+void gitsi_perform_push(gitsi_context *context) {
+    char *buffer;
+    asprintf(&buffer, "/bin/sh -c \"cd '%s' && git push\"", context->repo_dir);
+    
+    gitsi_curses_stop(false);
+    system(buffer);
+    gitsi_curses_start(context);
+    free(buffer);
+}
+
+/* perform a git push -u */
+void gitsi_perform_pushu(gitsi_context *context) {
+    char *buffer;
+    asprintf(&buffer, "/bin/sh -c \"cd '%s' && git push -u\"", context->repo_dir);
+    
+    gitsi_curses_stop(false);
+    system(buffer);
+    gitsi_curses_start(context);
+    free(buffer);
+}
+
 void gitsi_perform_edit(gitsi_context *context, gitsi_status_entry *entry) {
     char *buffer;
     asprintf(&buffer, "/bin/sh -c \"cd '%s' && vim '%s'\"", context->repo_dir, entry->filename);
@@ -1199,6 +1227,9 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
                 gitsi_update_status(context);
             }
         }
+	else if (key == K_R) {
+            gitsi_update_status(context);
+	}
         else if (key == K_C) {
             gitsi_perform_commit(context, false);
             gitsi_update_status(context);
@@ -1207,6 +1238,14 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
             gitsi_perform_commit(context, true);
             gitsi_update_status(context);
         }
+	else if (key == K_P) {
+            gitsi_perform_push(context);
+            gitsi_update_status(context);
+	}
+	else if (key == K_S_P) {
+            gitsi_perform_pushu(context);
+            gitsi_update_status(context);
+	}
         else if (key == K_X) {
             if (context->position == NULL)return;
             if (context->position->type == STATUS_TYPE_UNTRACKED)return;
