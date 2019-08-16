@@ -104,7 +104,7 @@ You can debug on the terminal via llvm `llvm gitsi [repo]`
 
 ## Xcode
 
-There's an Xcode project included. It should work right away. 
+There's an Xcode project included. It should work right away once you've installed `libgit` (see above under macOS installation)
 
 ## Xcode debugging
 
