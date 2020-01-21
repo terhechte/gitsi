@@ -761,22 +761,15 @@ void gitsi_unstage_entry(gitsi_context *context, gitsi_status_entry *entry) {
 
 /* Checkout an entry, i.e. remove all changes */
 void gitsi_checkout_entry(gitsi_context *context, gitsi_status_entry *entry) {
-    // Somehow, using git_checkout_head with git_checkout_options and opts.paths
-    // does not seem to work for me. So we will just use the command line for now.
-    //git_checkout_options opts;
-    //git_checkout_init_options(&opts, GIT_CHECKOUT_OPTIONS_VERSION);
-    //opts.paths.strings = { (char*)entry->filename };
-    //opts.paths.count = 1;
-    //int error = git_checkout_head(context->repo, &opts);
-    char *buffer;
-    asprintf(&buffer, "/bin/sh -c \"cd '%s' && git checkout -- '%s'\"", context->repo_dir,
-             entry->filename);
-    system(buffer);
-    // If we don't reopen the repo after the checkout of a file
-    // it somehow crashes
-    gitsi_cleanup(context);
-    gitsi_open_repository(context);
-    free(buffer);
+    git_checkout_options opts;
+    git_checkout_init_options(&opts, GIT_CHECKOUT_OPTIONS_VERSION);
+    opts.checkout_strategy = GIT_CHECKOUT_FORCE;
+
+    char *paths[] = { (char*)entry->filename, };
+    opts.paths.strings = paths;
+    opts.paths.count = 1;
+
+    int error = git_checkout_head(context->repo, &opts);
 }
 
 /* Perform action `action` on all marked entries */
