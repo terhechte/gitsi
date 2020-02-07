@@ -829,6 +829,7 @@ void gitsi_perform_diff(gitsi_context *context, gitsi_status_entry *entry) {
     char *oldenv_org = getenv("GIT_PAGER");
     char *oldenv = (oldenv_org == NULL) ? NULL : strdup(getenv("GIT_PAGER"));
     setenv("GIT_PAGER", "less -RSX -+F", 1);
+    system("clear");
     system(buffer);
     unsetenv("GIT_PAGER");
     if (oldenv != NULL) {
@@ -847,6 +848,7 @@ void gitsi_perform_gitp(gitsi_context *context, gitsi_status_entry *entry) {
              entry->filename);
     
     gitsi_curses_stop(false);
+    system("clear");
     system(buffer);
     gitsi_curses_start(context);
     free(buffer);
@@ -859,6 +861,7 @@ void gitsi_perform_commit(gitsi_context *context, bool amend) {
              amend == true ? "--amend" : "");
     
     gitsi_curses_stop(false);
+    system("clear");
     system(buffer);
     gitsi_curses_start(context);
     free(buffer);
@@ -870,6 +873,7 @@ void gitsi_perform_push(gitsi_context *context) {
     asprintf(&buffer, "/bin/sh -c \"cd '%s' && git push\"", context->repo_dir);
     
     gitsi_curses_stop(false);
+    system("clear");
     system(buffer);
     gitsi_curses_start(context);
     free(buffer);
@@ -881,6 +885,7 @@ void gitsi_perform_pushu(gitsi_context *context) {
     asprintf(&buffer, "/bin/sh -c \"cd '%s' && git push -u\"", context->repo_dir);
     
     gitsi_curses_stop(false);
+    system("clear");
     system(buffer);
     gitsi_curses_start(context);
     free(buffer);
@@ -888,9 +893,10 @@ void gitsi_perform_pushu(gitsi_context *context) {
 
 void gitsi_perform_edit(gitsi_context *context, gitsi_status_entry *entry) {
     char *buffer;
-    asprintf(&buffer, "/bin/sh -c \"cd '%s' && vim '%s'\"", context->repo_dir, entry->filename);
+    asprintf(&buffer, "/bin/sh -c \"cd '%s' && vi '%s'\"", context->repo_dir, entry->filename);
     
     gitsi_curses_stop(false);
+    system("clear");
     system(buffer);
     gitsi_curses_start(context);
     free(buffer);
