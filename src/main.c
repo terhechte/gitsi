@@ -496,8 +496,12 @@ void gitsi_add_entry(const char *filename, const char *description,
     context->entries[pos] = calloc(1, sizeof(gitsi_status_entry));
     if (filename != NULL)
         context->entries[pos]->filename = strdup(filename);
+    else
+        context->entries[pos]->filename = NULL;
     if (description != NULL)
         context->entries[pos]->description = strdup(description);
+    else
+        context->entries[pos]->description = NULL;
     context->entries[pos]->type = type;
 }
 
@@ -1041,7 +1045,11 @@ void gitsi_print_list(gitsi_context *context) {
             color_set(GITSI_COLOR_VISUAL_SELECT, 0);
             mvprintw(pos, 0, "    ");
         } else {
-            mvprintw(pos, lpos, "%s\t%11s\t%s", is_marked ? "*" : " ", entries[i]->description, entries[i]->filename);
+            const char* filename = entries[i]->filename;
+            if (filename == NULL)filename = "";
+            const char* description = entries[i]->description;
+            if (description == NULL)description = "";
+            mvprintw(pos, lpos, "%s\t%11s\t%s", is_marked ? "*" : " ", filename, description);
             color_set(GITSI_COLOR_VISUAL_SELECT, 0);
             mvprintw(pos, 0, "%3d ", abs(middle - linum_pos));
             linum_pos += 1;
