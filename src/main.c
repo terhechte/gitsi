@@ -451,6 +451,9 @@ void gitsi_open_repository(gitsi_context *context) {
         fprintf(stderr, "Could not report status on bare repository: %s", context->repo_dir);
         exit(1);
     }
+    
+    // The `repo_dir` is now the common repo dir that git detected
+    context->repo_dir = git_repository_workdir(context->repo);
 }
 
 /* Go through all the entries in the context and free them */
