@@ -144,11 +144,11 @@ NCurses also works in a way that looks like leaks to valgrind:
 https://invisible-island.net/ncurses/ncurses.faq.html#config_leaks
 
 ## Open Issues
-- Currently, gitsi has to be run in the repo root, otherwise some operations calculate the wrong file path. This should account for the pwd.
+- [x] Currently, gitsi has to be run in the repo root, otherwise some operations calculate the wrong file path. This should account for the pwd.
 - [Maybe] Split up into multiple files
 - Add git stash support, especially for stashing individual files
 - The loop over the status items should not happen three times, but instead happen once and call out to functions for index, workspace, and untracked
-- git commit -a
+- [x] git commit -a
 - Deleted files can only be unstaged to toggle between index and workspace. That seems to be because the status is not taken into account
 - [Maybe] add to homebrew
 - [Maybe] a config file (line numbers on off, color on off, etc)
