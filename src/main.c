@@ -1024,6 +1024,27 @@ void gitsi_print_list(gitsi_context *context) {
         }
     }
     
+    // We also have to calculate the longest title and the longest description
+    // so that we can align the fields
+    size_t longest_title = 0;
+    size_t longest_description = 0;
+    for (size_t i = start_pos; i < count; ++i) {
+        if (entries[i]->type == STATUS_TYPE_CATEGORY) { continue; }
+        if (entries[i]->filename != NULL) {
+            size_t l = strlen(entries[i]->filename);
+            if (l > longest_title) {
+                longest_title = l;
+            }
+        }
+        if (entries[i]->description != NULL) {
+            size_t l = strlen(entries[i]->description);
+            if (l > longest_description) {
+                longest_description = l;
+            }
+        }
+    }
+    
+    
     int linum_pos = 1;
     for (size_t i = start_pos; i < count; ++i) {
         if (i > (start_pos + length))break;
@@ -1058,7 +1079,15 @@ void gitsi_print_list(gitsi_context *context) {
             if (filename == NULL)filename = "";
             const char* description = entries[i]->description;
             if (description == NULL)description = "";
-            mvprintw(pos, lpos, "%s\t%11s\t%s", is_marked ? "*" : " ", filename, description);
+            size_t c = lpos;
+            const char *marker = is_marked ? "*" : " ";
+            mvprintw(pos, c, marker);
+            c += strlen(marker);
+            c += 1;
+            mvprintw(pos, c, filename);
+            c += longest_title + 1;
+            mvprintw(pos, c, description);
+            
             color_set(GITSI_COLOR_VISUAL_SELECT, 0);
             mvprintw(pos, 0, "%3d ", abs(middle - linum_pos));
             linum_pos += 1;
