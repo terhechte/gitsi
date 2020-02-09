@@ -126,14 +126,14 @@ typedef struct gitsi_context {
     char search_term[MAX_INPUT_CHARS];
     gitsi_status_entry **filtered_entries;
     size_t filtered_entry_count;
-
+    
     // Command state
     char command_term[MAX_INPUT_CHARS];
     bool is_in_command_mode;
     
     // List state
     gitsi_status_entry *position;
-
+    
     // UI State
     bool is_visual_mark_mode;
     bool is_in_help;
@@ -172,7 +172,7 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (ch == 258)return K_ARROW_DOWN;
     if (ch == 260)return K_ARROW_LEFT;
     if (ch == 261)return K_ARROW_RIGHT;
-
+    
     // This returns a pointer, but I could not figure out via the docs
     // whether the pointer needs to be freed. Valgrind laments that we're
     // leaking here, but in one document, it says:
@@ -185,12 +185,12 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (CMP("j"))return K_J;
     if (CMP("k"))return K_K;
     if (CMP("r"))return K_R;
-
+    
     if (CMP(":"))return K_COMMAND;
     
     if (CMP("s"))return K_S;
     if (CMP("u"))return K_U;
-
+    
     if (CMP("?"))return K_HELP;
     
     if (CMP("S"))return K_S_S;
@@ -223,9 +223,9 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (CMP("^?"))return K_BACKSPACE;
     if (CMP("^["))return K_ESC;
     if (CMP("^M"))return K_ENTER;
-
+    
     gitsi_debug_str(context, "(%i)\n", ch);
-
+    
     return K_OTHER;
 }
 
@@ -716,14 +716,14 @@ void gitsi_checkout_entry(gitsi_context *context, gitsi_status_entry *entry);
 /* Stage or add an entry depending on the type of the file / entry */
 void gitsi_stage_entry(gitsi_context *context, gitsi_status_entry *entry) {
     if (entry->type == STATUS_TYPE_CATEGORY)return;
-
+    
     // if the entry is a deleted entry, what we really want to call
     // is git_index_remove_bypath
     if (entry->git_status == GIT_STATUS_WT_DELETED && entry->type == STATUS_TYPE_WORKSPACE) {
         int error = git_index_remove_bypath(context->repo_index, entry->filename);
         gitsi_check_error("git index remove bypath", error);
     }
-
+    
     int error;
     switch (util_is_regular_file(context->repo_dir, entry->filename)) {
         case FILE_TYPE_FILE:
@@ -745,14 +745,14 @@ void gitsi_stage_entry(gitsi_context *context, gitsi_status_entry *entry) {
 
 /* Unstage an entry that is in the workspace */
 void gitsi_unstage_workspace(gitsi_context *context, gitsi_status_entry *entry) {
-
+    
     // if the entry is a deleted entry, what we really want to call
     // is reset as we want to eradicate the deletion
     if (entry->git_status == GIT_STATUS_WT_DELETED && entry->type == STATUS_TYPE_WORKSPACE) {
         gitsi_checkout_entry(context, entry);
         return;
     }
-
+    
     // Unstage in the workspace means delete
     int error = git_index_remove_bypath(context->repo_index, entry->filename);
     gitsi_check_error("git index remove bypath", error);
@@ -823,11 +823,11 @@ void gitsi_checkout_entry(gitsi_context *context, gitsi_status_entry *entry) {
     git_checkout_options opts;
     git_checkout_init_options(&opts, GIT_CHECKOUT_OPTIONS_VERSION);
     opts.checkout_strategy = GIT_CHECKOUT_FORCE;
-
+    
     char *paths[] = { (char*)entry->filename, };
     opts.paths.strings = paths;
     opts.paths.count = 1;
-
+    
     int error = git_checkout_head(context->repo, &opts);
 }
 
@@ -960,7 +960,7 @@ void gitsi_perform_edit(gitsi_context *context, gitsi_status_entry *entry) {
 void gitsi_perform_command(gitsi_context *context, const char *command) {
     char *buffer;
     asprintf(&buffer, "/bin/sh -c \"cd '%s'; git %s\"", context->repo_dir, command);
-
+    
     gitsi_curses_stop(false);
     system("clear");
     system(buffer);
@@ -1374,9 +1374,9 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
                 gitsi_update_status(context);
             }
         }
-	else if (key == K_R) {
+        else if (key == K_R) {
             gitsi_update_status(context);
-	}
+        }
         else if (key == K_C) {
             gitsi_perform_commit(context, false);
             gitsi_update_status(context);
@@ -1385,14 +1385,14 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
             gitsi_perform_commit(context, true);
             gitsi_update_status(context);
         }
-	else if (key == K_P) {
+        else if (key == K_P) {
             gitsi_perform_push(context);
             gitsi_update_status(context);
-	}
-	else if (key == K_S_P) {
+        }
+        else if (key == K_S_P) {
             gitsi_perform_pushu(context);
             gitsi_update_status(context);
-	}
+        }
         else if (key == K_X) {
             if (context->position == NULL)return;
             if (context->position->type == STATUS_TYPE_UNTRACKED)return;
@@ -1413,7 +1413,7 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
         else if (key == K_E) {
             if (context->position != NULL) {
                 gitsi_perform_edit(context, context->position);
-		gitsi_update_status(context);
+                gitsi_update_status(context);
             }
         }
         else if (key == K_COMMAND) {
