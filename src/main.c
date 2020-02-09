@@ -44,6 +44,8 @@ typedef struct gitsi_help_entry {
     const char *desc;
 } gitsi_help_entry;
 
+// test
+
 /* A list of all the features to be used for the status bar and the help screen */
 const gitsi_help_entry help_entries[] = {
     {.key = "j", .name = "down", .desc = "Go to the next line"},
@@ -84,6 +86,7 @@ typedef struct gitsi_status_entry {
     const char *description;
     enum GITSI_STATUS_TYPE type;
     bool marked;
+    git_status_t git_status;
 } gitsi_status_entry;
 
 #define MAX_SEARCH_CHARS 256
@@ -496,7 +499,8 @@ void gitsi_cleanup(gitsi_context *context) {
 
 /* Add an entry to our list of entries, called when git status is performed */
 void gitsi_add_entry(const char *filename, const char *description,
-                     enum GITSI_STATUS_TYPE type, gitsi_context *context, size_t pos) {
+                     enum GITSI_STATUS_TYPE type, gitsi_context *context, size_t pos,
+                     git_status_t git_status) {
     context->entries[pos] = calloc(1, sizeof(gitsi_status_entry));
     if (filename != NULL)
         context->entries[pos]->filename = strdup(filename);
@@ -507,6 +511,7 @@ void gitsi_add_entry(const char *filename, const char *description,
     else
         context->entries[pos]->description = NULL;
     context->entries[pos]->type = type;
+    context->entries[pos]->git_status = git_status;
 }
 
 /* Use libgit to get the repository status */
@@ -567,7 +572,7 @@ void gitsi_get_repository_status(gitsi_context *context) {
         
         if (!category) {
             category = true;
-            gitsi_add_entry("Index", NULL, STATUS_TYPE_CATEGORY, context, entry_count);
+            gitsi_add_entry("Index", NULL, STATUS_TYPE_CATEGORY, context, entry_count, GIT_STATUS_IGNORED);
             entry_count += 1;
         }
         
@@ -578,7 +583,7 @@ void gitsi_get_repository_status(gitsi_context *context) {
         } else {
             actual_path = old_path ? old_path : new_path;
         }
-        gitsi_add_entry(actual_path, istatus, STATUS_TYPE_INDEX, context, entry_count);
+        gitsi_add_entry(actual_path, istatus, STATUS_TYPE_INDEX, context, entry_count, s->status);
         entry_count += 1;
     }
     
@@ -607,7 +612,7 @@ void gitsi_get_repository_status(gitsi_context *context) {
         
         if (!category) {
             category = true;
-            gitsi_add_entry("Workspace", NULL, STATUS_TYPE_CATEGORY, context, entry_count);
+            gitsi_add_entry("Workspace", NULL, STATUS_TYPE_CATEGORY, context, entry_count, GIT_STATUS_IGNORED);
             entry_count += 1;
         }
         
@@ -618,7 +623,7 @@ void gitsi_get_repository_status(gitsi_context *context) {
         } else {
             actual_path = old_path ? old_path : new_path;
         }
-        gitsi_add_entry(actual_path, wstatus, STATUS_TYPE_WORKSPACE, context, entry_count);
+        gitsi_add_entry(actual_path, wstatus, STATUS_TYPE_WORKSPACE, context, entry_count, s->status);
         entry_count += 1;
     }
     
@@ -630,10 +635,10 @@ void gitsi_get_repository_status(gitsi_context *context) {
         if (s->status == GIT_STATUS_WT_NEW) {
             if (!category) {
                 category = true;
-                gitsi_add_entry("Untracked", NULL, STATUS_TYPE_CATEGORY, context, entry_count);
+                gitsi_add_entry("Untracked", NULL, STATUS_TYPE_CATEGORY, context, entry_count, GIT_STATUS_IGNORED);
                 entry_count += 1;
             }
-            gitsi_add_entry(s->index_to_workdir->old_file.path, "untracked", STATUS_TYPE_UNTRACKED, context, entry_count);
+            gitsi_add_entry(s->index_to_workdir->old_file.path, "untracked", STATUS_TYPE_UNTRACKED, context, entry_count, s->status);
             entry_count += 1;
         }
     }
@@ -678,9 +683,20 @@ void gitsi_update_status(gitsi_context *context) {
     gitsi_filter_entries(context);
 }
 
+// We need forward declarations here as the functions call each other
+void gitsi_checkout_entry(gitsi_context *context, gitsi_status_entry *entry);
+
 /* Stage or add an entry depending on the type of the file / entry */
 void gitsi_stage_entry(gitsi_context *context, gitsi_status_entry *entry) {
     if (entry->type == STATUS_TYPE_CATEGORY)return;
+
+    // if the entry is a deleted entry, what we really want to call
+    // is git_index_remove_bypath
+    if (entry->git_status == GIT_STATUS_WT_DELETED && entry->type == STATUS_TYPE_WORKSPACE) {
+        int error = git_index_remove_bypath(context->repo_index, entry->filename);
+        gitsi_check_error("git index remove bypath", error);
+    }
+
     int error;
     switch (util_is_regular_file(context->repo_dir, entry->filename)) {
         case FILE_TYPE_FILE:
@@ -702,6 +718,14 @@ void gitsi_stage_entry(gitsi_context *context, gitsi_status_entry *entry) {
 
 /* Unstage an entry that is in the workspace */
 void gitsi_unstage_workspace(gitsi_context *context, gitsi_status_entry *entry) {
+
+    // if the entry is a deleted entry, what we really want to call
+    // is reset as we want to eradicate the deletion
+    if (entry->git_status == GIT_STATUS_WT_DELETED && entry->type == STATUS_TYPE_WORKSPACE) {
+        gitsi_checkout_entry(context, entry);
+        return;
+    }
+
     // Unstage in the workspace means delete
     int error = git_index_remove_bypath(context->repo_index, entry->filename);
     gitsi_check_error("git index remove bypath", error);
