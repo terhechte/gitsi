@@ -863,6 +863,28 @@ void gitsi_action_on_marked(gitsi_context *context,
     }
 }
 
+/* Callbacks for test_stage_hunks below */
+int stage_hunk_file_callback(const git_diff_delta *delta, float progress, void *payload) {
+    return 0;
+}
+
+int stage_hunk_line_callback(const git_diff_delta *delta, const git_diff_hunk *hunk, const git_diff_line *line, void *payload) {
+    printf("%.*s\n", line->content_len, line->content);
+    return 0;
+}
+
+/* Test code to see if we can stage only partial lines */
+void test_stage_hunks(gitsi_context *context, gitsi_status_entry *entry) {
+    git_diff *diff = NULL;
+    git_strarray arr = { .strings = (char**)&entry->filename, .count = 1};
+    git_diff_options options = GIT_DIFF_OPTIONS_INIT;
+    options.pathspec = arr;
+    int error = git_diff_index_to_workdir(&diff, context->repo, NULL, &options);
+    gitsi_check_error("git generate diff", error);
+    gitsi_curses_stop(false);
+    git_diff_foreach(diff, stage_hunk_file_callback, NULL, NULL, stage_hunk_line_callback, context); // SECOND NULL is hunk callback
+}
+
 /* perform git diff and display it in a pager */
 void gitsi_perform_diff(gitsi_context *context, gitsi_status_entry *entry) {
     const char param_index[] = "--cached";
@@ -1420,7 +1442,9 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
             context->is_in_command_mode = true;
         }
         else if (key == K_S_1) {
-            gitsi_select_category(context, STATUS_TYPE_INDEX);
+//            gitsi_select_category(context, STATUS_TYPE_INDEX);
+            if (context->position != NULL)
+                test_stage_hunks(context, context->position);
         }
         else if (key == K_S_2) {
             gitsi_select_category(context, STATUS_TYPE_WORKSPACE);
