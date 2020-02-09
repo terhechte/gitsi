@@ -463,6 +463,8 @@ void gitsi_open_repository(gitsi_context *context) {
 
 /* Go through all the entries in the context and free them */
 void gitsi_free_entries(gitsi_context *context) {
+    // As the `position` points to one of our entries, it also needs to be cleared
+    context->position = NULL;
     for (size_t i = 0; i < context->entry_count; ++i) {
         // Not all categories are always there, but we always alloc the space for 3 categories
         // So the last [1-3] entries might never have been allocated
