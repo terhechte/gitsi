@@ -92,6 +92,8 @@ typedef struct gitsi_status_entry {
 #define MAX_SEARCH_CHARS 256
 #define MAX_NUMBER_STACK 8
 
+// #define DEBUG 1
+
 #if DEBUG
 #define LOGFILE_NAME "/tmp/gitsi.log"
 #endif
@@ -146,8 +148,11 @@ enum key_stroke {
     K_BACKSPACE, K_ESC, K_ENTER, K_YES, K_NO, K_H, K_S_V, K_S_C, K_X, K_P, K_S_P,
     // Navigation
     K_G, K_C_U, K_C_D, K_J, K_K, K_S_G, K_S_1, K_S_2, K_S_3,
+    K_ARROW_LEFT, K_ARROW_RIGHT, K_ARROW_UP, K_ARROW_DOWN,
     K_OTHER
 };
+
+void gitsi_debug_str(gitsi_context *context, const char *format, ...);
 
 // --------------------------------------------------
 #pragma mark Helpers
@@ -155,7 +160,12 @@ enum key_stroke {
 
 /* Translate what the user entered into one of our key constants */
 enum key_stroke translate_key(gitsi_context *context, int ch) {
-    if (ch == 10) return K_ENTER;
+    if (ch == 10)return K_ENTER;
+    if (ch == 259)return K_ARROW_UP;
+    if (ch == 258)return K_ARROW_DOWN;
+    if (ch == 260)return K_ARROW_LEFT;
+    if (ch == 261)return K_ARROW_RIGHT;
+
     // This returns a pointer, but I could not figure out via the docs
     // whether the pointer needs to be freed. Valgrind laments that we're
     // leaking here, but in one document, it says:
@@ -202,6 +212,9 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (CMP("^?"))return K_BACKSPACE;
     if (CMP("^["))return K_ESC;
     if (CMP("^M"))return K_ENTER;
+
+    gitsi_debug_str(context, "(%i)\n", ch);
+
     return K_OTHER;
 }
 
@@ -294,6 +307,7 @@ void gitsi_clear_line(gitsi_context *context, size_t row) {
 /* Startup ncurses and set the proper flags */
 void gitsi_curses_start(gitsi_context *context) {
     initscr();
+    keypad(stdscr, TRUE);
     noecho();
     curs_set(0);
     nonl();
@@ -1241,12 +1255,12 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
         } else if (key == K_H) {
             context->is_in_help = true;
         }
-        else if (key == K_J) {
+        else if (key == K_J || key == K_ARROW_DOWN) {
             for (int i = 0; i < iteration_count; i++) {
                 gitsi_select_entry(context, 1);
             }
         }
-        else if (key == K_K) {
+        else if (key == K_K || key == K_ARROW_UP) {
             for (int i = 0; i < iteration_count; i++) {
                 gitsi_select_entry(context, -1);
             }
