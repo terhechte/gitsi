@@ -453,6 +453,8 @@ void gitsi_open_repository(gitsi_context *context) {
     }
     
     // The `repo_dir` is now the common repo dir that git detected
+    free(context->repo_dir);
+    context->repo_dir = NULL;
     context->repo_dir = git_repository_workdir(context->repo);
 }
 
@@ -488,7 +490,6 @@ void gitsi_cleanup(gitsi_context *context) {
     git_index_free(context->repo_index);
     context->repo_index = NULL;
     context->repo = NULL;
-    free(context->repo_dir);
     gitsi_free_entries(context);
     git_libgit2_shutdown();
 }
