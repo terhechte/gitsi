@@ -76,6 +76,7 @@ const gitsi_help_entry help_entries[] = {
     {.key = "S", .name = "s action on marked", .desc = "Perform the add/stage action on all marked files"},
     {.key = "U", .name = "u action on marked", .desc = "Perform the unstage/delete action on all marked files"},
     {.key = "x", .name = "Reset", .desc = "Remove / Reset all changes this file has. Like `git checkout -- file`"},
+    {.key = ":", .name = "Command", .desc = "Run git command. I.e. :log for git log"},
 };
 
 #define help_entries_length (sizeof (help_entries) / sizeof (const gitsi_help_entry))
@@ -89,7 +90,7 @@ typedef struct gitsi_status_entry {
     git_status_t git_status;
 } gitsi_status_entry;
 
-#define MAX_SEARCH_CHARS 256
+#define MAX_INPUT_CHARS 512
 #define MAX_NUMBER_STACK 8
 
 // #define DEBUG 1
@@ -122,13 +123,17 @@ typedef struct gitsi_context {
     
     // Search / Filter State
     bool is_search;
-    char search_term[MAX_SEARCH_CHARS];
+    char search_term[MAX_INPUT_CHARS];
     gitsi_status_entry **filtered_entries;
     size_t filtered_entry_count;
+
+    // Command state
+    char command_term[MAX_INPUT_CHARS];
+    bool is_in_command_mode;
     
     // List state
     gitsi_status_entry *position;
-    
+
     // UI State
     bool is_visual_mark_mode;
     bool is_in_help;
@@ -149,6 +154,7 @@ enum key_stroke {
     // Navigation
     K_G, K_C_U, K_C_D, K_J, K_K, K_S_G, K_S_1, K_S_2, K_S_3,
     K_ARROW_LEFT, K_ARROW_RIGHT, K_ARROW_UP, K_ARROW_DOWN,
+    K_COMMAND,
     K_OTHER
 };
 
@@ -178,6 +184,8 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     if (CMP("j"))return K_J;
     if (CMP("k"))return K_K;
     if (CMP("r"))return K_R;
+
+    if (CMP(":"))return K_COMMAND;
     
     if (CMP("s"))return K_S;
     if (CMP("u"))return K_U;
@@ -946,6 +954,17 @@ void gitsi_perform_edit(gitsi_context *context, gitsi_status_entry *entry) {
     free(buffer);
 }
 
+void gitsi_perform_command(gitsi_context *context, const char *command) {
+    char *buffer;
+    asprintf(&buffer, "/bin/sh -c \"cd '%s'; git %s\"", context->repo_dir, command);
+
+    gitsi_curses_stop(false);
+    system("clear");
+    system(buffer);
+    gitsi_curses_start(context);
+    free(buffer);
+}
+
 // --------------------------------------------------
 #pragma mark Printing / UI
 // --------------------------------------------------
@@ -983,6 +1002,21 @@ void gitsi_print_status_search(gitsi_context *context, size_t row) {
         mvprintw((int)row, context->max_x - (length_help + 1), search_help);
     } else {
         mvprintw((int)row, context->max_x - (length_help_short + 1), search_help_short);
+    }
+}
+
+/* Print the command bar at the bottom */
+void gitsi_print_command(gitsi_context *context, size_t row) {
+    const char title[] = ":";
+    mvprintw((int)row, 1, "%s%s", title, context->command_term);
+    const char search_command[] = "[Enter: run GIT command] [Escape: Cancel]";
+    const char search_command_short[] = "[ENTER|ESC]";
+    const int length_command = strlen(search_command);
+    const int length_command_short = strlen(search_command_short);
+    if ((context->max_x - (strlen(context->command_term) + 4)) > length_command) {
+        mvprintw((int)row, context->max_x - (length_command + 1), search_command);
+    } else {
+        mvprintw((int)row, context->max_x - (length_command_short + 1), search_command_short);
     }
 }
 
@@ -1027,6 +1061,8 @@ void gitsi_print_statusbar(gitsi_context *context) {
     gitsi_clear_line(context, context->max_y - 1);
     if (context->is_search || strlen(context->search_term) > 0) {
         gitsi_print_status_search(context, context->max_y - 1);
+    } else if (context->is_in_command_mode || strlen(context->command_term) > 0) {
+        gitsi_print_command(context, context->max_y - 1);
     } else {
         gitsi_print_status_help(context, context->max_y - 1);
     }
@@ -1175,7 +1211,7 @@ void gitsi_print_main(gitsi_context *context) {
 
 /* Logic to handle searching */
 void gitsi_process_search(gitsi_context *context, enum key_stroke key, int ch) {
-    if (strlen(context->search_term) > MAX_SEARCH_CHARS)return;
+    if (strlen(context->search_term) > MAX_INPUT_CHARS)return;
     if (key == K_ENTER) {
         context->is_search = false;
         // if the position is not part of the search anymore, change position to first
@@ -1209,6 +1245,32 @@ void gitsi_process_search(gitsi_context *context, enum key_stroke key, int ch) {
     gitsi_filter_entries(context);
 }
 
+/* Logic to enter commands */
+void gitsi_process_command_input(gitsi_context *context, enum key_stroke key, int ch) {
+    if (strlen(context->command_term) > MAX_INPUT_CHARS)return;
+    if (key == K_ENTER) {
+        context->is_in_command_mode = false;
+        if (strlen(context->command_term) > 0) {
+            gitsi_perform_command(context, context->command_term);
+        }
+        strcpy(context->command_term, "");
+        return;
+    }
+    if (key == K_ESC) {
+        context->is_in_command_mode = false;
+        strcpy(context->command_term, "");
+    }
+    else if (key == K_BACKSPACE) {
+        int new_pos = ((int)strlen(context->command_term)) - 1;
+        if (new_pos >= 0) {
+            context->command_term[new_pos] = '\0';
+        }
+    }
+    else {
+        sprintf(context->command_term, "%s%c", context->command_term, ch);
+    }
+}
+
 /* Signal Handler for SIGINT 
  * If the user hits CTRL+C to exit, we still want to clean up properly
  */
@@ -1225,6 +1287,8 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
     
     if (context->is_search) {
         gitsi_process_search(context, key, input_char);
+    } else if (context->is_in_command_mode) {
+        gitsi_process_command_input(context, key, input_char);
     } else if (context->is_in_help) {
         context->is_in_help = false;
     } else {
@@ -1348,6 +1412,9 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
                 gitsi_perform_edit(context, context->position);
 		gitsi_update_status(context);
             }
+        }
+        else if (key == K_COMMAND) {
+            context->is_in_command_mode = true;
         }
         else if (key == K_S_1) {
             gitsi_select_category(context, STATUS_TYPE_INDEX);
