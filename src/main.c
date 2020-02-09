@@ -155,6 +155,7 @@ enum key_stroke {
     K_G, K_C_U, K_C_D, K_J, K_K, K_S_G, K_S_1, K_S_2, K_S_3,
     K_ARROW_LEFT, K_ARROW_RIGHT, K_ARROW_UP, K_ARROW_DOWN,
     K_COMMAND,
+    K_HELP,
     K_OTHER
 };
 
@@ -189,6 +190,8 @@ enum key_stroke translate_key(gitsi_context *context, int ch) {
     
     if (CMP("s"))return K_S;
     if (CMP("u"))return K_U;
+
+    if (CMP("?"))return K_HELP;
     
     if (CMP("S"))return K_S_S;
     if (CMP("U"))return K_S_U;
@@ -1316,7 +1319,7 @@ void gitsi_process_input(gitsi_context *context, int input_char) {
         } else if (key == K_Q) {
             sigint_received = true;
             return;
-        } else if (key == K_H) {
+        } else if (key == K_H || key == K_HELP) {
             context->is_in_help = true;
         }
         else if (key == K_J || key == K_ARROW_DOWN) {
