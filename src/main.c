@@ -567,12 +567,19 @@ void gitsi_get_repository_status(gitsi_context *context) {
     const char *old_path, *new_path, *actual_path;
     bool category = false;
     
-    size_t number_of_categories = 3;
+//    size_t number_of_categories = 3;
     // We account for off-by-one for the number of categories (+ 1)
     // And for the number of entries (+ 1)
     // So we reserver the number of categories + the number of entries + 2 off-by-ones
-    size_t number_of_entries = 2 + maxi + number_of_categories;
+//    size_t number_of_entries = 2 + maxi + number_of_categories;
+    
+    // It seems the `git_status_list_entrycount` function does not consider the
+    // `untracked`. We could realloc accordingly, but instead we will just pre-allocate
+    // 512 items and hope for the best.
+    size_t number_of_entries = 512;
+    
     context->entries = calloc(number_of_entries, sizeof(gitsi_status_entry*));
+    
     
     // Index
     for (i = 0; i < maxi; ++i) {
