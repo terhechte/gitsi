@@ -944,7 +944,7 @@ void gitsi_perform_push(gitsi_context *context) {
 /* perform a git push -u */
 void gitsi_perform_pushu(gitsi_context *context) {
     char *buffer;
-    asprintf(&buffer, "/bin/sh -c \"cd '%s' && git push -u\"", context->repo_dir);
+    asprintf(&buffer, "/bin/sh -c \"cd '%s' && git push -u origin HEAD\"", context->repo_dir);
     
     gitsi_curses_stop(false);
     system("clear");
